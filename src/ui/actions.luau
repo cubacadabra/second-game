@@ -16,6 +16,7 @@ local colors = {
 
 local shape_ids = { "cube", "beam", "slab" }
 local color_ids = { "coral", "butter", "periwinkle", "ink", "paper" }
+local beacon_count = 0
 
 local function close_popovers(api)
     api.ui.open_popover = nil
@@ -66,5 +67,13 @@ function GameUIActions.handle(api, event)
         select_shape(api, shapes[event.action])
     elseif colors[event.action] then
         select_color(api, colors[event.action])
+    elseif event.action == "build.place" then
+        beacon_count = beacon_count + 1
+        local checkpoint = ((beacon_count - 1) % 4) + 1
+        api.ui:set_text("second-game-status", "BEACON " .. checkpoint .. "/4")
+    elseif event.action == "build.remove" then
+        api.ui:set_text("second-game-status", "ROUTE EDITED")
+    elseif event.action == "build.rotate" then
+        api.ui:set_text("second-game-status", "TURN MARKER")
     end
 end

@@ -1,4 +1,4 @@
--- Portable entry point for the first-game package.
+-- Portable entry point for the second-game package.
 --
 -- The build step expands these includes into one sandboxed Luau chunk for the
 -- shared Rust runtime. Keeping the includes explicit makes load order visible
@@ -8,24 +8,24 @@
 -- @include "ui/document.luau"
 -- @include "ui/actions.luau"
 
-local FirstGame = {}
+local SecondGame = {}
 
-function FirstGame.on_start(api)
-    api.lobby:set_status("Step onto BUILD TOGETHER to start a shared build")
-    api.ui.selected_shape = "cube"
-    api.ui.selected_color = "coral"
+function SecondGame.on_start(api)
+    api.lobby:set_status("SECOND GAME: step onto DROP SIGNAL to start the relay")
+    api.ui.selected_shape = "beam"
+    api.ui.selected_color = "periwinkle"
     api.ui.open_popover = nil
     api.ui:set_document(GameUIDocument.create())
+    api.ui:set_text("second-game-status", "DROP BEACON 0/4")
 end
 
-function FirstGame.on_ui_event(api, event)
+function SecondGame.on_ui_event(api, event)
     GameUIActions.handle(api, event)
 end
 
-function FirstGame.on_tick(_api, _delta_seconds)
-    -- Game-specific rules belong here as the first game grows.
-    -- Movement, collision, launch-pad timing, and multiplayer build state
-    -- remain platform services.
+function SecondGame.on_tick(_api, _delta_seconds)
+    -- The relay route and its collision geometry live in the manifest. The
+    -- shared host still owns movement, launch timing, and multiplayer state.
 end
 
-return FirstGame
+return SecondGame
