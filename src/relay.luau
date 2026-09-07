@@ -12,29 +12,85 @@ local NODE_POSITIONS = {
 }
 local UPLINK_POSITION = { 0, 0, -31 }
 
-local function copy_captured(source)
-    local result = {}
-    if type(source) ~= "table" then
-        return result
-    end
-    for _, id in ipairs(NODE_IDS) do
-        if source[id] == true then
-            result[id] = true
-        end
-    end
-    return result
-end
-
-local function empty_payload(round, links)
+local function initial_state(round, links)
     return {
         version = 1,
-        round = round,
+        round = round or 1,
         phase = "running",
         nextNode = 1,
-        captured = {},
-        links = links,
-        lastAction = { type = "round_reset", round = round },
+        links = links or 0,
+        lastAction = { type = "round_reset", round = round or 1 },
     }
+end
+
+local function validate_state(payload)
+    if type(payload) ~= "table"
+        or payload.version ~= 1
+        or type(payload.round) ~= "number"
+        or payload.round < 1
+        or type(payload.nextNode) ~= "number"
+        or payload.nextNode < 1
+        or payload.nextNode > #NODE_IDS + 1
+        or (payload.phase ~= "running"
+            and payload.phase ~= "uplink"
+            and payload.phase ~= "overdrive")
+    then
+        return nil
+    end
+    if payload.phase == "running" and payload.nextNode > #NODE_IDS then
+        return nil
+    end
+    if payload.phase ~= "running" and payload.nextNode ~= #NODE_IDS + 1 then
+        return nil
+    end
+
+    return {
+        version = 1,
+        round = payload.round,
+        phase = payload.phase,
+        nextNode = payload.nextNode,
+        links = type(payload.links) == "number" and math.max(0, payload.links) or 0,
+        lastAction = type(payload.lastAction) == "table" and payload.lastAction or {},
+    }
+end
+
+local function reduce_state(state, intent)
+    if intent.type == "capture"
+        and state.phase == "running"
+        and intent.node == state.nextNode
+    then
+        local next_node = state.nextNode + 1
+        return {
+            version = 1,
+            round = state.round,
+            phase = next_node > #NODE_IDS and "uplink" or "running",
+            nextNode = next_node,
+            links = state.links,
+            lastAction = { type = "capture", node = intent.node },
+        }
+    end
+
+    if intent.type == "uplink" and state.phase == "uplink" then
+        return {
+            version = 1,
+            round = state.round,
+            phase = "overdrive",
+            nextNode = state.nextNode,
+            links = state.links + 1,
+            lastAction = { type = "uplink" },
+        }
+    end
+
+    if intent.type == "reset"
+        and state.phase == "overdrive"
+        and intent.round == state.round
+    then
+        return initial_state(state.round + 1, state.links)
+    end
+
+    -- A nil result also makes repeated or remotely-completed intents
+    -- idempotent; the SDK removes them from its queue.
+    return nil
 end
 
 local function node_index(id)
@@ -47,243 +103,150 @@ local function node_index(id)
 end
 
 function SignalRelay.create()
-    return setmetatable({
-        round = 1,
-        phase = "running",
-        nextNode = 1,
-        captured = {},
-        links = 0,
-        sequence = 0,
+    local relay = setmetatable({
+        fallbackState = initial_state(),
         message = "Follow the pulsing gate. The relay is shared.",
-        hasSnapshot = false,
-        pendingNode = nil,
-        pendingUplink = false,
-        resetPending = false,
-        resetRetrySeconds = 0,
-        overdriveSeconds = 0,
+        resetQueued = false,
     }, SignalRelay)
+
+    relay.shared = CubaSharedState.create({
+        channel = STATE_CHANNEL,
+        initial = function()
+            return initial_state()
+        end,
+        validate = validate_state,
+        reduce = reduce_state,
+        onChange = function(api, state, previous, event)
+            relay:on_change(api, state, previous, event)
+        end,
+    })
+    return relay
+end
+
+function SignalRelay:state()
+    return self.shared.value or self.fallbackState
 end
 
 function SignalRelay:node_count()
     return #NODE_IDS
 end
 
-function SignalRelay:node_id(index)
-    return NODE_IDS[index]
+function SignalRelay:remaining_seconds()
+    if self:state().phase ~= "overdrive" then
+        return 0
+    end
+    return math.max(0, OVERDRIVE_SECONDS - self.shared.ageSeconds)
 end
 
-function SignalRelay:has_pending_action()
-    return self.pendingNode ~= nil or self.pendingUplink or self.resetPending
-end
-
-function SignalRelay:sync_effects(api)
+function SignalRelay:sync_effects(api, state)
     for index, id in ipairs(NODE_IDS) do
-        local state = "locked"
-        if self.captured[id] then
-            state = "captured"
-        elseif self.phase == "running" and self.nextNode == index then
-            state = "active"
+        local effect_state = "locked"
+        if index < state.nextNode then
+            effect_state = "captured"
+        elseif state.phase == "running" and state.nextNode == index then
+            effect_state = "active"
         end
-        api.effects:set_state(id, state)
+        api.effects:set_state(id, effect_state)
     end
 
     local uplink_state = "locked"
-    if self.phase == "uplink" then
+    if state.phase == "uplink" then
         uplink_state = "active"
-    elseif self.phase == "overdrive" then
+    elseif state.phase == "overdrive" then
         uplink_state = "overdrive"
     end
     api.effects:set_state("uplink", uplink_state)
 end
 
-function SignalRelay:submit(api)
-    if self.resetPending then
-        api.network:compare_set_state(
-            STATE_CHANNEL,
-            self.sequence,
-            empty_payload(self.round + 1, self.links)
-        )
-        self.resetRetrySeconds = 0.75
-        return
-    end
-
-    local next_captured = copy_captured(self.captured)
-    local next_node = self.nextNode
-    local next_phase = self.phase
-    local next_links = self.links
-    local last_action = nil
-
-    if self.pendingNode ~= nil and next_phase == "running" and self.pendingNode == next_node then
-        local id = NODE_IDS[next_node]
-        next_captured[id] = true
-        last_action = { type = "capture", node = next_node }
-        next_node = next_node + 1
-        if next_node > #NODE_IDS then
-            next_phase = "uplink"
+function SignalRelay:on_change(api, state, previous, _event)
+    if previous ~= nil then
+        local captured_node = state.nextNode > previous.nextNode
+            and state.nextNode - 1
+            or nil
+        if captured_node ~= nil and NODE_IDS[captured_node] ~= nil then
+            if captured_node == 2 then
+                api.audio:play("relay-chain")
+            elseif captured_node == 4 then
+                api.audio:play("uplink-ready")
+            else
+                api.audio:play("relay-hit")
+            end
+            api.effects:play(
+                "relay-capture",
+                { position = NODE_POSITIONS[captured_node] }
+            )
         end
-    elseif self.pendingUplink and next_phase == "uplink" then
-        next_phase = "overdrive"
-        next_links = next_links + 1
-        last_action = { type = "uplink" }
-    else
-        return
+        if state.phase == "overdrive" and previous.phase ~= "overdrive" then
+            api.audio:play("relay-overdrive")
+            api.effects:play("overdrive-burst", { position = UPLINK_POSITION })
+        end
     end
 
-    api.network:compare_set_state(STATE_CHANNEL, self.sequence, {
-        version = 1,
-        round = self.round,
-        phase = next_phase,
-        nextNode = next_node,
-        captured = next_captured,
-        links = next_links,
-        lastAction = last_action,
-    })
+    if state.round ~= (previous and previous.round or state.round) then
+        self.resetQueued = false
+        self.message = "New relay! Follow node 01."
+    elseif state.phase == "overdrive" then
+        self.message = "Signal locked! The whole relay is live."
+    elseif state.phase == "uplink" and (previous == nil or previous.phase ~= "uplink") then
+        self.message = "All nodes linked! Sprint to the uplink."
+    elseif state.lastAction.type == "capture"
+        and type(state.lastAction.node) == "number"
+    then
+        self.message = string.format(
+            "Node %02d linked • next node %02d",
+            state.lastAction.node,
+            state.nextNode
+        )
+    end
+    self:sync_effects(api, state)
 end
 
 function SignalRelay:initialize(api)
-    api.network:compare_set_state(STATE_CHANNEL, 0, empty_payload(1, 0))
-    self:sync_effects(api)
+    self.shared:start(api)
+    self:sync_effects(api, self:state())
 end
 
 function SignalRelay:request_interaction(api, id)
+    local state = self:state()
     if id == "uplink" then
-        if self.phase == "uplink" and not self.pendingUplink then
-            self.pendingUplink = true
+        if state.phase == "uplink" then
             self.message = "Firing the shared uplink..."
-            self:submit(api)
-        elseif self.phase == "running" then
-            self.message = string.format("UPLINK LOCKED • FIND NODE %02d", self.nextNode)
+            self.shared:dispatch(api, { type = "uplink" })
+        elseif state.phase == "running" then
+            self.message = string.format("UPLINK LOCKED • FIND NODE %02d", state.nextNode)
         end
         return
     end
 
     local index = node_index(id)
-    if index == nil or self.phase ~= "running" then
+    if index == nil or state.phase ~= "running" then
         return
     end
-    if index ~= self.nextNode then
-        if self.captured[id] then
+    if index ~= state.nextNode then
+        if index < state.nextNode then
             self.message = string.format("NODE %02d ALREADY LINKED", index)
         else
-            self.message = string.format("NODE %02d LOCKED • FIND NODE %02d", index, self.nextNode)
+            self.message = string.format("NODE %02d LOCKED • FIND NODE %02d", index, state.nextNode)
         end
         return
     end
-    if self.pendingNode ~= nil then
-        return
-    end
 
-    self.pendingNode = index
     self.message = string.format("Linking node %02d...", index)
-    self:submit(api)
+    self.shared:dispatch(api, { type = "capture", node = index })
 end
 
-function SignalRelay:apply_snapshot(api, event)
-    local payload = event.payload
-    local sequence = event.sequence
-    if type(payload) ~= "table" or payload.version ~= 1 or type(sequence) ~= "number" then
-        return
-    end
-    if self.hasSnapshot and sequence < self.sequence then
-        return
-    end
-    if self.hasSnapshot and sequence == self.sequence then
-        if self:has_pending_action() then
-            self:submit(api)
-        end
-        return
-    end
-    if type(payload.round) ~= "number" or payload.round < 1 then
-        return
-    end
-    if type(payload.nextNode) ~= "number" or payload.nextNode < 1 or payload.nextNode > #NODE_IDS + 1 then
-        return
-    end
-    if payload.phase ~= "running" and payload.phase ~= "uplink" and payload.phase ~= "overdrive" then
-        return
-    end
-
-    local previous_round = self.round
-    local previous_phase = self.phase
-    local previous_captured = self.captured
-    local next_captured = copy_captured(payload.captured)
-    local next_links = type(payload.links) == "number" and math.max(0, payload.links) or 0
-
-    for index, id in ipairs(NODE_IDS) do
-        local should_animate = self.hasSnapshot or self.pendingNode == index
-        if should_animate and next_captured[id] and not previous_captured[id] then
-            if index == 2 then
-                api.audio:play("relay-chain")
-            elseif index == 4 then
-                api.audio:play("uplink-ready")
-            else
-                api.audio:play("relay-hit")
-            end
-            api.effects:play("relay-capture", { position = NODE_POSITIONS[index] })
-        end
-    end
-    local entered_overdrive = payload.phase == "overdrive" and previous_phase ~= "overdrive"
-    if (self.hasSnapshot or self.pendingUplink) and entered_overdrive then
-        api.audio:play("relay-overdrive")
-        api.effects:play("overdrive-burst", { position = UPLINK_POSITION })
-    end
-
-    self.round = payload.round
-    self.phase = payload.phase
-    self.nextNode = payload.nextNode
-    self.captured = next_captured
-    self.links = next_links
-    self.sequence = sequence
-    self.hasSnapshot = true
-
-    if self.pendingNode ~= nil and (self.captured[NODE_IDS[self.pendingNode]] or self.phase ~= "running") then
-        self.pendingNode = nil
-    end
-    if self.phase ~= "uplink" then
-        self.pendingUplink = false
-    end
-
-    if self.round ~= previous_round then
-        self.resetPending = false
-        self.message = "New relay! Follow node 01."
-    elseif self.phase == "overdrive" then
-        self.message = "Signal locked! The whole relay is live."
-    elseif self.phase == "uplink" and previous_phase ~= "uplink" then
-        self.message = "All nodes linked! Sprint to the uplink."
-    elseif type(payload.lastAction) == "table" and payload.lastAction.type == "capture" then
-        self.message = string.format("Node %02d linked • next node %02d", payload.lastAction.node, self.nextNode)
-    end
-
-    if self.phase == "overdrive" then
-        local age_seconds = type(event.ageMs) == "number" and math.max(0, event.ageMs / 1000) or 0
-        self.overdriveSeconds = math.max(0, OVERDRIVE_SECONDS - age_seconds)
-    else
-        self.overdriveSeconds = 0
-    end
-
-    self:sync_effects(api)
-    if self:has_pending_action() then
-        self:submit(api)
-    end
+function SignalRelay:receive(api, event)
+    return self.shared:receive(api, event)
 end
 
 function SignalRelay:tick(api, delta_seconds)
-    if self.phase ~= "overdrive" then
-        return
-    end
-    self.overdriveSeconds = math.max(0, self.overdriveSeconds - delta_seconds)
-    if self.overdriveSeconds > 0 then
-        return
-    end
-
-    if not self.resetPending then
-        self.resetPending = true
-        self:submit(api)
-        return
-    end
-
-    self.resetRetrySeconds = self.resetRetrySeconds - delta_seconds
-    if self.resetRetrySeconds <= 0 then
-        self:submit(api)
+    self.shared:update(api, delta_seconds)
+    local state = self:state()
+    if state.phase == "overdrive"
+        and self:remaining_seconds() <= 0
+        and not self.resetQueued
+    then
+        self.resetQueued = true
+        self.shared:dispatch(api, { type = "reset", round = state.round })
     end
 end

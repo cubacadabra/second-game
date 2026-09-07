@@ -1,6 +1,7 @@
 -- Portable entry point for Signal Run.
 -- All relay rules and presentation stay inside this game package.
 
+-- @include "@cubacadabra/shared-state-v1.luau"
 -- @include "relay.luau"
 -- @include "ui/styles.luau"
 -- @include "ui/document.luau"
@@ -25,11 +26,9 @@ function SecondGame.on_interaction(api, event)
 end
 
 function SecondGame.on_network_message(api, event)
-    if event.type ~= "game_state" or event.channel ~= "signal-run-round" then
-        return
+    if relay:receive(api, event) then
+        SignalUI.update(api, relay)
     end
-    relay:apply_snapshot(api, event)
-    SignalUI.update(api, relay)
 end
 
 function SecondGame.on_ui_event(_api, _event)
