@@ -1,160 +1,420 @@
 {
   "id": "second-game",
-  "version": 1,
-  "sdkVersion": "0.1",
+  "version": "0.0.1",
+  "sdkVersion": "0.3",
   "package": {
-    "formatVersion": 1,
+    "formatVersion": 3,
     "entry": "game.luau"
   },
+  "assets": {
+    "audio": {
+      "relay-hit": {
+        "path": "assets/audio/spell-cast.wav",
+        "volume": 0.7
+      },
+      "relay-chain": {
+        "path": "assets/audio/charm-learned.wav",
+        "volume": 0.72
+      },
+      "uplink-ready": {
+        "path": "assets/audio/circle-ready.wav",
+        "volume": 0.68
+      },
+      "relay-overdrive": {
+        "path": "assets/audio/rainbow-burst.wav",
+        "volume": 0.82
+      }
+    }
+  },
+  "effects": {
+    "version": 1,
+    "templates": {
+      "relay-gate": {
+        "duration": 1,
+        "nodes": [
+          {
+            "shape": "box",
+            "position": [-1.65, 1.55, 0],
+            "size": [0.32, 3.1, 0.32],
+            "color": "ink",
+            "opacity": 0.94
+          },
+          {
+            "shape": "box",
+            "position": [1.65, 1.55, 0],
+            "size": [0.32, 3.1, 0.32],
+            "color": "ink",
+            "opacity": 0.94
+          },
+          {
+            "shape": "box",
+            "position": [0, 2.95, 0],
+            "size": [3.62, 0.3, 0.32],
+            "color": "$interaction",
+            "opacity": 0.82
+          },
+          {
+            "shape": "ring",
+            "position": [0, 0.4, 0],
+            "size": [3.2, 0.1, 1],
+            "color": "$interaction",
+            "opacity": 0.18,
+            "visibleStates": ["default", "locked"]
+          },
+          {
+            "shape": "ring",
+            "position": [0, 0.42, 0],
+            "size": [3.2, 0.14, 1],
+            "color": "$interaction",
+            "opacity": 0.98,
+            "visibleStates": ["active"],
+            "animation": {
+              "pulseAmount": 0.09,
+              "pulseSpeed": 3.4,
+              "spinSpeed": 0.3
+            }
+          },
+          {
+            "shape": "sphere",
+            "position": [0, 1.45, 0],
+            "size": [0.18, 1, 1],
+            "color": "$interaction",
+            "opacity": 0.94,
+            "count": 8,
+            "visibleStates": ["active"],
+            "animation": {
+              "orbitRadius": 1.62,
+              "orbitSpeed": 0.85,
+              "bobAmount": 0.18,
+              "bobSpeed": 3,
+              "pulseAmount": 0.04,
+              "pulseSpeed": 3.4
+            }
+          },
+          {
+            "shape": "ring",
+            "position": [0, 0.4, 0],
+            "size": [3.2, 0.11, 1],
+            "color": "$interaction",
+            "opacity": 0.62,
+            "visibleStates": ["captured"]
+          },
+          {
+            "shape": "sphere",
+            "position": [0, 2.95, 0],
+            "size": [0.22, 1, 1],
+            "color": "$interaction",
+            "opacity": 0.8,
+            "count": 3,
+            "visibleStates": ["captured"],
+            "animation": {
+              "orbitRadius": 0.72,
+              "orbitSpeed": 0.2
+            }
+          }
+        ]
+      },
+      "uplink-tower": {
+        "duration": 1,
+        "nodes": [
+          {
+            "shape": "cylinder",
+            "position": [0, 0.46, 0],
+            "size": [5.1, 0.44, 1],
+            "color": "ink",
+            "opacity": 0.96
+          },
+          {
+            "shape": "box",
+            "position": [0, 2.05, 0],
+            "size": [0.42, 3.7, 0.42],
+            "color": "signal",
+            "opacity": 0.72
+          },
+          {
+            "shape": "ring",
+            "position": [0, 0.72, 0],
+            "size": [4.55, 0.13, 1],
+            "color": "signal",
+            "opacity": 0.2,
+            "visibleStates": ["default", "locked"]
+          },
+          {
+            "shape": "ring",
+            "position": [0, 0.74, 0],
+            "size": [4.55, 0.17, 1],
+            "color": "signal",
+            "opacity": 0.98,
+            "visibleStates": ["active"],
+            "animation": {
+              "pulseAmount": 0.12,
+              "pulseSpeed": 3.2,
+              "spinSpeed": 0.45
+            }
+          },
+          {
+            "shape": "sphere",
+            "position": [0, 3.82, 0],
+            "size": [0.42, 1, 1],
+            "color": "signal",
+            "opacity": 0.96,
+            "visibleStates": ["active", "overdrive"],
+            "animation": {
+              "bobAmount": 0.2,
+              "bobSpeed": 2.5,
+              "pulseAmount": 0.1,
+              "pulseSpeed": 3.2
+            }
+          },
+          {
+            "shape": "ring",
+            "position": [0, 1.7, 0],
+            "size": [2.2, 0.12, 1],
+            "color": "hot",
+            "opacity": 0.9,
+            "count": 3,
+            "visibleStates": ["overdrive"],
+            "animation": {
+              "orbitRadius": 0.7,
+              "orbitSpeed": 1.4,
+              "pulseAmount": 0.12,
+              "pulseSpeed": 4
+            }
+          }
+        ]
+      },
+      "relay-capture": {
+        "duration": 0.85,
+        "nodes": [
+          {
+            "shape": "ring",
+            "position": [0, 0.42, 0],
+            "size": [0.8, 0.13, 1],
+            "color": "signal",
+            "animation": {
+              "expandAmount": 3.2,
+              "fade": true
+            }
+          },
+          {
+            "shape": "sphere",
+            "position": [0, 1.25, 0],
+            "size": [0.2, 1, 1],
+            "color": "paper",
+            "count": 8,
+            "animation": {
+              "orbitRadius": 0.65,
+              "orbitSpeed": 2.8,
+              "radialAmount": 2.8,
+              "fade": true
+            }
+          }
+        ]
+      },
+      "overdrive-burst": {
+        "duration": 3.2,
+        "nodes": [
+          {
+            "shape": "ring",
+            "position": [0, 0.5, 0],
+            "size": [1.2, 0.18, 1],
+            "color": "signal",
+            "animation": {
+              "expandAmount": 9,
+              "fade": true
+            }
+          },
+          {
+            "shape": "ring",
+            "position": [0, 0.72, 0],
+            "size": [1.8, 0.14, 1],
+            "color": "hot",
+            "animation": {
+              "expandAmount": 7.5,
+              "fade": true
+            }
+          },
+          {
+            "shape": "ring",
+            "position": [0, 0.94, 0],
+            "size": [2.4, 0.12, 1],
+            "color": "butter",
+            "animation": {
+              "expandAmount": 6,
+              "fade": true
+            }
+          },
+          {
+            "shape": "sphere",
+            "position": [0, 1.8, 0],
+            "size": [0.28, 1, 1],
+            "color": "paper",
+            "count": 12,
+            "animation": {
+              "orbitRadius": 1.25,
+              "orbitSpeed": 3.2,
+              "bobAmount": 0.65,
+              "bobSpeed": 4.2,
+              "radialAmount": 7,
+              "fade": true
+            }
+          }
+        ]
+      }
+    }
+  },
   "displayName": "Second Game: Signal Run",
+  "lobby": false,
   "startWorld": "lobby",
   "launch": {
-    "destinationWorld": "real-game",
+    "destinationWorld": "relay-yard",
     "authoritative": true
   },
   "scene": {
-    "eyebrow": "second game / signal run",
-    "title": "Lobby",
-    "description": "Step onto DROP SIGNAL, then build a beacon route through the relay yard.",
-    "maxPlayers": 12
+    "eyebrow": "cubacadabra",
+    "title": "Signal Run",
+    "description": "Chain four signal gates, then fire the shared uplink.",
+    "maxPlayers": 18
   },
   "palette": {
-    "sky": "#20254a",
-    "ground": "#293861",
-    "groundEdge": "#111832",
-    "grid": "#465b91",
-    "coral": "#ff8a3d",
-    "butter": "#f1e95b",
-    "periwinkle": "#9f7bff",
-    "ink": "#0b102b",
-    "paper": "#f7f5e9"
+    "sky": "#151A3F",
+    "ground": "#20295D",
+    "groundEdge": "#080D26",
+    "grid": "#3B4C86",
+    "signal": "#57E5D0",
+    "hot": "#FF5B85",
+    "coral": "#FF8A3D",
+    "butter": "#F1E95B",
+    "periwinkle": "#9F7BFF",
+    "ink": "#0B102B",
+    "paper": "#F7F5E9"
   },
   "avatars": {
     "player": {
-      "skin": "#e8ae86",
-      "shirt": "#57e5d0",
-      "pants": "#4c3f91",
-      "shoes": "#111832"
+      "skin": "#E8AE86",
+      "shirt": "#57E5D0",
+      "pants": "#4C3F91",
+      "shoes": "#0B102B",
+      "character": {
+        "version": 1,
+        "body": "cuba:person.v1",
+        "face": "determined",
+        "outfit": "cuba:everyday-hoodie.v1",
+        "equipment": {},
+        "colors": {
+          "primary": "#57E5D0",
+          "secondary": "#4C3F91",
+          "sole": "#0B102B"
+        },
+        "revision": 1
+      }
     },
-    "npcs": [
-      { "skin": "#f0b18a", "shirt": "#ff8a3d", "pants": "#332b68", "shoes": "#111832" },
-      { "skin": "#d99770", "shirt": "#57e5d0", "pants": "#293861", "shoes": "#111832" },
-      { "skin": "#f4c39f", "shirt": "#9f7bff", "pants": "#343653", "shoes": "#111832" },
-      { "skin": "#c98263", "shirt": "#f1e95b", "pants": "#244d5a", "shoes": "#111832" },
-      { "skin": "#e4a77b", "shirt": "#d45c9a", "pants": "#413b78", "shoes": "#111832" },
-      { "skin": "#f1c29b", "shirt": "#4cc5b6", "pants": "#2f314b", "shoes": "#111832" }
-    ]
+    "npcs": []
   },
   "world": {
-    "groundSize": 120,
-    "gridSize": 112,
-    "gridDivisions": 28,
-    "spawn": [0, 0, 6.25],
+    "groundSize": 70,
+    "gridSize": 64,
+    "gridDivisions": 32,
+    "spawn": [0, 0, 23],
+    "showSpawnPad": false,
     "clouds": [
-      { "position": [-22, 24, -58], "scale": 1.1 },
-      { "position": [28, 19, -68], "scale": 1.55 },
-      { "position": [46, 26, 10], "scale": 0.8 }
+      { "position": [-20, 19, -35], "scale": 0.9 },
+      { "position": [24, 23, -48], "scale": 1.2 }
     ]
   },
-  "launchPads": [
-    {
-      "id": "build-together",
-      "code": "SIGNAL 01",
-      "label": "DROP SIGNAL",
-      "position": [-10, 0, -3],
-      "color": "#ff8a3d",
-      "radius": 2.7,
-      "countdown": 8,
-      "enabled": true
-    },
-    {
-      "id": "deep-dive",
-      "code": "SIGNAL 02",
-      "label": "LOOP BACK",
-      "position": [0, 0, -7],
-      "color": "#f1e95b",
-      "radius": 2.7,
-      "countdown": 8,
-      "enabled": false,
-      "availabilityLabel": "COMING SOON"
-    },
-    {
-      "id": "sky-run",
-      "code": "SIGNAL 03",
-      "label": "NIGHT CLIMB",
-      "position": [10, 0, -3],
-      "color": "#9f7bff",
-      "radius": 2.7,
-      "countdown": 8,
-      "enabled": false,
-      "availabilityLabel": "COMING SOON"
-    }
-  ],
-  "blocks": [
-    { "position": [0.15, 1.35, -13.5], "size": [2.8, 2.7, 2.8], "color": "coral" },
-    { "position": [-8.1, 0.8, -22], "size": [3.8, 1.6, 3.8], "color": "butter" },
-    { "position": [8.4, 1.5, -27], "size": [2.2, 3, 2.2], "color": "periwinkle" },
-    { "position": [13, 0.5, -17], "size": [1, 1, 1], "color": "ink", "outline": false },
-    { "position": [-22, 0.35, -34], "size": [1.2, 0.7, 1.2], "color": "coral", "outline": false },
-    { "position": [24, 0.5, -39], "size": [1.5, 1, 1.5], "color": "butter", "outline": false },
-    { "position": [-28, 0.5, 18], "size": [1.5, 1, 1.5], "color": "periwinkle", "outline": false }
-  ],
-  "signs": [
-    { "text": "SECOND GAME", "position": [0, 4.6, -13.45], "maxWidth": 5.5, "color": "paper" }
-  ],
+  "launchPads": [],
+  "blocks": [],
   "worlds": {
-    "real-game": {
-      "scene": {
-        "eyebrow": "second game / signal run",
-        "title": "The Relay Yard",
-        "description": "Drop four beacons and thread a route through the obstacle yard.",
-        "maxPlayers": 12
-      },
+    "relay-yard": {
       "palette": {
-        "sky": "#171b43",
-        "ground": "#20295d",
-        "groundEdge": "#0b102b",
-        "grid": "#3b4c86",
-        "coral": "#ff8a3d",
-        "butter": "#f1e95b",
-        "periwinkle": "#9f7bff",
-        "ink": "#0b102b",
-        "paper": "#f7f5e9"
+        "sky": "#151A3F",
+        "ground": "#20295D",
+        "groundEdge": "#080D26",
+        "grid": "#3B4C86",
+        "signal": "#57E5D0",
+        "hot": "#FF5B85",
+        "coral": "#FF8A3D",
+        "butter": "#F1E95B",
+        "periwinkle": "#9F7BFF",
+        "ink": "#0B102B",
+        "paper": "#F7F5E9"
       },
       "world": {
-        "groundSize": 100,
-        "gridSize": 88,
-        "gridDivisions": 22,
-        "spawn": [0, 0, 10],
-        "showSpawnPad": true,
+        "groundSize": 70,
+        "gridSize": 64,
+        "gridDivisions": 32,
+        "spawn": [0, 0, 23],
+        "showSpawnPad": false,
         "clouds": [
-          { "position": [-16, 18, -38], "scale": 0.85 },
-          { "position": [19, 21, -52], "scale": 1.1 }
+          { "position": [-20, 19, -35], "scale": 0.9 },
+          { "position": [24, 23, -48], "scale": 1.2 }
         ]
       },
-      "launchPads": [],
-      "buildRound": {
-        "durationSeconds": 420,
-        "maxBlocks": 96,
-        "gridSize": 0.5,
-        "prompts": [
-          "Drop four beacons and connect them with a route.",
-          "Build a relay bridge that turns every corner.",
-          "Make a signal tower the whole crew can find.",
-          "Create a shortcut through the night yard."
-        ],
-        "colors": ["coral", "butter", "periwinkle", "ink", "paper"]
-      },
       "blocks": [
-        { "position": [0, 1.5, -6], "size": [2.5, 3, 2.5], "color": "coral" },
-        { "position": [-5, 0.5, -11], "size": [4, 1, 4], "color": "butter" },
-        { "position": [5, 0.5, -15], "size": [4, 1, 4], "color": "periwinkle" },
-        { "position": [-5, 2.5, -19], "size": [2, 5, 2], "color": "coral" },
-        { "position": [5, 2.5, -23], "size": [2, 5, 2], "color": "butter" },
-        { "position": [0, 0.5, -28], "size": [10, 1, 2], "color": "ink" },
-        { "position": [-11, 1.5, -20], "size": [1, 3, 18], "color": "ink", "outline": false },
-        { "position": [11, 1.5, -20], "size": [1, 3, 18], "color": "ink", "outline": false },
-        { "position": [0, 4.25, -28], "size": [4.5, 0.35, 0.35], "color": "butter", "outline": false }
+        { "position": [-20, 1.3, -5], "size": [0.8, 2.6, 58], "color": "ink", "outline": false },
+        { "position": [20, 1.3, -5], "size": [0.8, 2.6, 58], "color": "ink", "outline": false },
+        { "position": [5, 0.7, 15], "size": [26, 1.4, 1], "color": "ink" },
+        { "position": [-5, 0.7, 6], "size": [26, 1.4, 1], "color": "ink" },
+        { "position": [5, 0.7, -3], "size": [26, 1.4, 1], "color": "ink" },
+        { "position": [-5, 0.7, -12], "size": [26, 1.4, 1], "color": "ink" },
+        { "position": [-12, 0.7, -22], "size": [16, 1.4, 1], "color": "ink" },
+        { "position": [12, 0.7, -22], "size": [16, 1.4, 1], "color": "ink" },
+        { "position": [-15, 0.18, 10], "size": [5.4, 0.36, 5.4], "color": "coral", "outline": false },
+        { "position": [15, 0.18, 1], "size": [5.4, 0.36, 5.4], "color": "butter", "outline": false },
+        { "position": [-15, 0.18, -8], "size": [5.4, 0.36, 5.4], "color": "periwinkle", "outline": false },
+        { "position": [15, 0.18, -17], "size": [5.4, 0.36, 5.4], "color": "hot", "outline": false },
+        { "position": [0, 0.2, -31], "size": [7.2, 0.4, 7.2], "color": "signal", "outline": false }
+      ],
+      "signs": [
+        { "text": "RUN THE SIGNAL", "position": [0, 3.1, 18], "maxWidth": 8, "color": "paper" },
+        { "text": "UPLINK", "position": [0, 4.6, -31], "maxWidth": 5, "color": "signal" }
+      ],
+      "interactions": [
+        {
+          "id": "node-1",
+          "kind": "zone",
+          "label": "NODE 01",
+          "position": [-15, 0, 10],
+          "radius": 2.8,
+          "color": "coral",
+          "visual": "relay-gate"
+        },
+        {
+          "id": "node-2",
+          "kind": "zone",
+          "label": "NODE 02",
+          "position": [15, 0, 1],
+          "radius": 2.8,
+          "color": "butter",
+          "visual": "relay-gate"
+        },
+        {
+          "id": "node-3",
+          "kind": "zone",
+          "label": "NODE 03",
+          "position": [-15, 0, -8],
+          "radius": 2.8,
+          "color": "periwinkle",
+          "visual": "relay-gate"
+        },
+        {
+          "id": "node-4",
+          "kind": "zone",
+          "label": "NODE 04",
+          "position": [15, 0, -17],
+          "radius": 2.8,
+          "color": "hot",
+          "visual": "relay-gate"
+        },
+        {
+          "id": "uplink",
+          "kind": "zone",
+          "label": "UPLINK",
+          "position": [0, 0, -31],
+          "radius": 3.6,
+          "color": "signal",
+          "visual": "uplink-tower"
+        }
       ]
     }
   }

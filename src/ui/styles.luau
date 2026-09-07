@@ -1,33 +1,33 @@
 local GameUIStyles = {}
 
 GameUIStyles.colors = {
-    ink = "#0B102BF5",
-    inkRaised = "#1A2152F7",
-    keyline = "#B7F7E4A8",
+    ink = "#0B102BF0",
     paper = "#F7F5E9FF",
-    blue = "#57E5D0FF",
-    coral = "#FF8A3DFF",
+    quiet = "#B9C3E4FF",
+    signal = "#57E5D0FF",
+    hot = "#FF5B85FF",
+    keyline = "#57E5D070",
 }
 
-function GameUIStyles.control_style(background, accent, foreground, radius)
+function GameUIStyles.panel_style()
     return {
-        background = background,
-        borderColor = "#070B20B8",
-        borderWidth = 3,
-        cornerRadius = radius or 17,
-        foreground = foreground or GameUIStyles.colors.paper,
-        accent = accent or GameUIStyles.colors.blue,
-        textAlign = "center",
-        fontSize = 14,
+        background = GameUIStyles.colors.ink,
+        borderColor = GameUIStyles.colors.keyline,
+        borderWidth = 2,
+        cornerRadius = 14,
+        foreground = GameUIStyles.colors.paper,
     }
 end
 
-function GameUIStyles.popover_style()
+function GameUIStyles.control_style()
     return {
-        background = GameUIStyles.colors.inkRaised,
-        borderColor = GameUIStyles.colors.keyline,
+        background = "#151A3FE8",
+        borderColor = GameUIStyles.colors.signal,
         borderWidth = 2,
-        cornerRadius = 20,
+        cornerRadius = 12,
         foreground = GameUIStyles.colors.paper,
+        accent = GameUIStyles.colors.signal,
+        textAlign = "center",
+        fontSize = 14,
     }
 end
