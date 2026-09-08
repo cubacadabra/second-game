@@ -33,7 +33,7 @@ top-right race counter; the route detail appears only when a player taps it.
 
 ```sh
 PYTHONPATH=../tools/src python3 -m cubacadabra build-game . \
-  --output build/package --zip build/second-game-v0.0.1.zip
+  --output build/package --zip build/second-game-v0.3.0.zip
 ```
 
 The builder inlines `effects.json` into the generated manifest, so runtime
