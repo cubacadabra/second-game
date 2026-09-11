@@ -38,3 +38,10 @@ PYTHONPATH=../tools/src python3 -m cubacadabra build-game . \
 
 The builder inlines `effects.json` into the generated manifest, so runtime
 clients still receive one portable package without source-file dependencies.
+
+### Licensing
+
+Copyright (C) 2026 Andrew Arrow
+
+Licensed under the GNU General Public License v3.0 or later.
+See [LICENSE](LICENSE).
