@@ -11,6 +11,7 @@ local NODE_POSITIONS = {
     { 15, 0, -17 },
 }
 local UPLINK_POSITION = { 0, 0, -31 }
+local INTERACTION_ZONE_SCHEMA = "cuba:interaction-zone.v1"
 
 local function initial_state(round, links)
     return {
@@ -107,6 +108,7 @@ function SignalRelay.create()
         fallbackState = initial_state(),
         message = "Follow the pulsing gate. The relay is shared.",
         resetQueued = false,
+        schema = nil,
     }, SignalRelay)
 
     relay.shared = CubaSharedState.create({
@@ -134,6 +136,30 @@ end
 
 function SignalRelay:node_count()
     return #NODE_IDS
+end
+
+function SignalRelay:node_id(index)
+    return NODE_IDS[index]
+end
+
+function SignalRelay:schema_summary()
+    if self.schema == nil then
+        return "ENGINE SCHEMA UNAVAILABLE"
+    end
+
+    local fields = {}
+    for _, property in ipairs(self.schema.properties) do
+        if property.id == "cuba:interaction-zone.label"
+            or property.id == "cuba:interaction-zone.radius"
+        then
+            fields[#fields + 1] = property.name
+        end
+    end
+    return string.format(
+        "ENGINE %s • %s",
+        self.schema.name,
+        table.concat(fields, " / ")
+    )
 end
 
 function SignalRelay:remaining_seconds()
@@ -206,6 +232,7 @@ function SignalRelay:on_change(api, state, previous, _event)
 end
 
 function SignalRelay:initialize(api)
+    self.schema = api.interactions:get_schema(INTERACTION_ZONE_SCHEMA)
     self.shared:start(api)
 end
 

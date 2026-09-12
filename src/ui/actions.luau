@@ -38,6 +38,7 @@ function SignalUI.update(api, relay, state)
     api.ui:set_text("signal-status", status)
     api.ui:set_text("signal-route", route_text(state, relay:node_count()))
     api.ui:set_text("signal-help", help)
+    api.ui:set_text("signal-schema", relay:schema_summary())
 end
 
 function SignalUI.bind(relay)
