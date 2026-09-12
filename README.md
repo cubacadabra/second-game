@@ -22,10 +22,13 @@ No Signal Run rules or names live in Rust or the backend.
 - `src/main.luau` — portable lifecycle entry point
 - `src/ui/` — game-owned HUD
 
-`src/main.luau` explicitly includes
-`@cubacadabra/shared-state-v1.luau` and
-`@cubacadabra/disclosure-v1.luau`. The shared helpers handle bounded intent
-queuing and generic tap-to-reveal state. Signal Run owns every state field,
+The shared-state model handles bounded intent queuing, ordered snapshots,
+compare-and-set replication, and a multi-consumer change feed. Signal Run's HUD
+and effect projection subscribe to the same accepted snapshot, so `main.luau`
+does not refresh either from interaction or every tick.
+
+`src/main.luau` explicitly includes `@cubacadabra/shared-state-v1.luau` and
+`@cubacadabra/disclosure-v1.luau`. Signal Run owns every state field,
 transition, HUD label, and edge placement. Its persistent HUD is a compact
 top-right race counter; the route detail appears only when a player taps it.
 

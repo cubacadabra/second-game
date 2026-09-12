@@ -20,8 +20,8 @@ function SecondGame.on_start(api)
     api.lobby:set_status("Chain four signal gates, then fire the uplink!")
     api.ui:set_document(GameUIDocument.create())
     signal_detail:sync(api)
+    SignalUI.bind(relay)
     relay:initialize(api)
-    SignalUI.update(api, relay)
 end
 
 function SecondGame.on_interaction(api, event)
@@ -29,13 +29,10 @@ function SecondGame.on_interaction(api, event)
         return
     end
     relay:request_interaction(api, event.id)
-    SignalUI.update(api, relay)
 end
 
 function SecondGame.on_network_message(api, event)
-    if relay:receive(api, event) then
-        SignalUI.update(api, relay)
-    end
+    relay:receive(api, event)
 end
 
 function SecondGame.on_ui_event(api, event)
@@ -44,7 +41,6 @@ end
 
 function SecondGame.on_tick(api, delta_seconds)
     relay:tick(api, delta_seconds)
-    SignalUI.update(api, relay)
 end
 
 return SecondGame

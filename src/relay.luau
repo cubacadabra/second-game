@@ -120,6 +120,11 @@ function SignalRelay.create()
             relay:on_change(api, state, previous, event)
         end,
     })
+    relay.shared:subscribe(function(api, state)
+        -- Effects are a DataModel consumer. They react to accepted snapshots
+        -- instead of being pushed from interaction or tick code.
+        relay:sync_effects(api, state)
+    end)
     return relay
 end
 
@@ -198,22 +203,21 @@ function SignalRelay:on_change(api, state, previous, _event)
             state.nextNode
         )
     end
-    self:sync_effects(api, state)
 end
 
 function SignalRelay:initialize(api)
     self.shared:start(api)
-    self:sync_effects(api, self:state())
+end
+
+function SignalRelay:subscribe(listener)
+    return self.shared:subscribe(listener)
 end
 
 function SignalRelay:request_interaction(api, id)
     local state = self:state()
     if id == "uplink" then
         if state.phase == "uplink" then
-            self.message = "Firing the shared uplink..."
             self.shared:dispatch(api, { type = "uplink" })
-        elseif state.phase == "running" then
-            self.message = string.format("UPLINK LOCKED • FIND NODE %02d", state.nextNode)
         end
         return
     end
@@ -223,15 +227,9 @@ function SignalRelay:request_interaction(api, id)
         return
     end
     if index ~= state.nextNode then
-        if index < state.nextNode then
-            self.message = string.format("NODE %02d ALREADY LINKED", index)
-        else
-            self.message = string.format("NODE %02d LOCKED • FIND NODE %02d", index, state.nextNode)
-        end
         return
     end
 
-    self.message = string.format("Linking node %02d...", index)
     self.shared:dispatch(api, { type = "capture", node = index })
 end
 

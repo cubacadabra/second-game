@@ -1,9 +1,8 @@
 local SignalUI = {}
 
-local function route_text(relay)
-    local state = relay:state()
+local function route_text(state, node_count)
     local parts = {}
-    for index = 1, relay:node_count() do
+    for index = 1, node_count do
         local label = string.format("%02d", index)
         if index < state.nextNode then
             parts[index] = "X" .. label
@@ -23,13 +22,12 @@ local function route_text(relay)
     return table.concat(parts, "  ") .. "  " .. uplink
 end
 
-function SignalUI.update(api, relay)
-    local state = relay:state()
+function SignalUI.update(api, relay, state)
     local status
     local help = relay.message
     if state.phase == "overdrive" then
         status = "OVERDRIVE"
-        help = string.format("Relay linked! Reset in %.1fs.", relay:remaining_seconds())
+        help = "Relay linked! The whole relay is live."
     elseif state.phase == "uplink" then
         status = "UPLINK OPEN"
     else
@@ -38,6 +36,12 @@ function SignalUI.update(api, relay)
 
     api.ui:set_text("signal-kicker", string.format("SIGNAL RUN • %d LINKS", state.links))
     api.ui:set_text("signal-status", status)
-    api.ui:set_text("signal-route", route_text(relay))
+    api.ui:set_text("signal-route", route_text(state, relay:node_count()))
     api.ui:set_text("signal-help", help)
+end
+
+function SignalUI.bind(relay)
+    relay:subscribe(function(api, state)
+        SignalUI.update(api, relay, state)
+    end)
 end
