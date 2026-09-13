@@ -1,3 +1,5 @@
+local CubaSharedState = require("@cubacadabra/shared-state")
+
 local SignalRelay = {}
 SignalRelay.__index = SignalRelay
 
@@ -275,3 +277,5 @@ function SignalRelay:tick(api, delta_seconds)
         self.shared:dispatch(api, { type = "reset", round = state.round })
     end
 end
+
+return SignalRelay

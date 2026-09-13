@@ -1,12 +1,10 @@
 -- Portable entry point for Signal Run.
 -- All relay rules and presentation stay inside this game package.
 
--- @include "@cubacadabra/shared-state-v1.luau"
--- @include "@cubacadabra/disclosure-v1.luau"
--- @include "relay.luau"
--- @include "ui/styles.luau"
--- @include "ui/document.luau"
--- @include "ui/actions.luau"
+local CubaDisclosure = require("@cubacadabra/disclosure")
+local SignalRelay = require("./relay")
+local GameUIDocument = require("./ui/document")
+local SignalUI = require("./ui/actions")
 
 local SecondGame = {}
 local relay = SignalRelay.create()

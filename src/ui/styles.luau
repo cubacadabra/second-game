@@ -31,3 +31,5 @@ function GameUIStyles.control_style()
         fontSize = 14,
     }
 end
+
+return GameUIStyles

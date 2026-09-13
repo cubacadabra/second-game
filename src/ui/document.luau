@@ -1,3 +1,5 @@
+local GameUIStyles = require("./styles")
+
 local GameUIDocument = {}
 
 function GameUIDocument.create()
@@ -96,3 +98,5 @@ function GameUIDocument.create()
         },
     }
 end
+
+return GameUIDocument

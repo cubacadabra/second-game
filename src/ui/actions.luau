@@ -46,3 +46,5 @@ function SignalUI.bind(relay)
         SignalUI.update(api, relay, state)
     end)
 end
+
+return SignalUI
