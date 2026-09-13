@@ -60,6 +60,7 @@ end
 local function reduce_state(state, intent)
     if intent.type == "capture"
         and state.phase == "running"
+        and intent.round == state.round
         and intent.node == state.nextNode
     then
         local next_node = state.nextNode + 1
@@ -73,7 +74,10 @@ local function reduce_state(state, intent)
         }
     end
 
-    if intent.type == "uplink" and state.phase == "uplink" then
+    if intent.type == "uplink"
+        and state.phase == "uplink"
+        and intent.round == state.round
+    then
         return {
             version = 1,
             round = state.round,
@@ -120,6 +124,9 @@ function SignalRelay.create()
         end,
         validate = validate_state,
         reduce = reduce_state,
+        intentExpired = function(state, intent)
+            return intent.round ~= state.round
+        end,
         onChange = function(api, state, previous, event)
             relay:on_change(api, state, previous, event)
         end,
@@ -246,7 +253,7 @@ function SignalRelay:request_interaction(api, id)
     local state = self:state()
     if id == "uplink" then
         if state.phase == "uplink" then
-            self.shared:dispatch(api, { type = "uplink" })
+            self.shared:dispatch(api, { type = "uplink", round = state.round })
         end
         return
     end
@@ -259,7 +266,7 @@ function SignalRelay:request_interaction(api, id)
         return
     end
 
-    self.shared:dispatch(api, { type = "capture", node = index })
+    self.shared:dispatch(api, { type = "capture", node = index, round = state.round })
 end
 
 function SignalRelay:receive(api, event)
